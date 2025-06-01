@@ -9,7 +9,7 @@ export interface StoreOptions<
   /**
    * Replace the default update function with a custom one.
    */
-  updateFn?: (previous: TState) => (updater: TUpdater) => TState
+  updateFn?: (previous: TState) => (current: TState) => TState
   /**
    * Called when a listener subscribes to the store.
    *
@@ -58,14 +58,17 @@ export class Store<
   setState(updater: Updater<TState> | TUpdater): void {
     this.prevState = this.state
 
-    if (this.options?.updateFn) {
-      this.state = this.options.updateFn(this.prevState)(updater as TUpdater)
+    let currState;
+    if (isUpdaterFunction(updater)) {
+      currState = updater(this.prevState)
     } else {
-      if (isUpdaterFunction(updater)) {
-        this.state = updater(this.prevState)
-      } else {
-        this.state = updater as TState
-      }
+      currState = updater as TState
+    }
+
+    if (this.options?.updateFn) {
+      this.state = this.options.updateFn(this.prevState)(currState);
+    } else {
+      this.state = currState;
     }
 
     // Always run onUpdate, regardless of batching
